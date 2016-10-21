@@ -64,7 +64,7 @@ if ($content == '') {
 // ![Ein Screenshot](screenshot.png)
 foreach ($files as $i_file) {
     $search = '#\!\[(.*)\]\((' . $i_file . ')\)#';
-    $replace = '<img src="index.php?page='. $addon . '/' . $docplugin . '&document_image=$2" alt="$1" title="$1" style="width:100%" />';
+    $replace = '<img src="index.php?page='. $addon . '/' . $docplugin . '&document_image=$2" alt="$1" title="$1" style="max-width:100%" />';
     $content = preg_replace($search, $replace, $content);
 }
 
