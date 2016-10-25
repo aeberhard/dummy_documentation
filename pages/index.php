@@ -1,18 +1,13 @@
 <?php
+$langselect = '';
+
+$doclang = rex_request('doclang', 'string', '');
+$formsubmit = rex_request('formsubmit', 'string', '');
+
 // Addon/Plugin-Informationen
 $addon = rex_be_controller::getCurrentPagePart(1);
 $docplugin = rex_be_controller::getCurrentPagePart(2);
 $plugin = rex_plugin::get($addon, $docplugin);
-
-//$lang = rex::getProperty('lang'); // System-Backend-Sprache
-$lang = rex::getUser()->getLanguage(); // User-Backend-Sprache
-// Sprache der Dokumentation aus package.yml
-if ($plugin->getProperty('documentationlang')) {
-    $lang = $plugin->getProperty('documentationlang');
-}
-
-// Pfad zusammenbauen aus Addon + Plugin
-$path = rex_path::plugin($addon, $docplugin , 'docs/' . $lang . '/');
 
 // Default Navigation aus package.yml
 $default_navi = $plugin->getProperty('defaultnavi');
@@ -25,6 +20,55 @@ $default_intro = $plugin->getProperty('defaultintro');
 if (!$default_intro) {
     $default_intro = 'main_intro.md';
 }
+
+// User-Backend-Sprache
+$lang = rex::getUser()->getLanguage();
+// Feste Sprache der Dokumentation aus package.yml
+if ($plugin->getProperty('documentationlang')) {
+    $lang = $plugin->getProperty('documentationlang');
+    $_SESSION['addon_documentation']['doclang'] = $lang;
+} else {
+// Bei mehreren verfügbaren Sprachen Sprachwähler aufbauen
+    $docs = [];
+    $path = rex_path::plugin($addon, $docplugin , 'docs/');
+    foreach (scandir($path) as $i_file) {
+        if ($i_file != '.' && $i_file != '..') {
+            if (is_dir($path . $i_file) && file_exists($path . $i_file . '/' . $default_navi)) {
+                $docs[$i_file] = $i_file;
+            }
+        }
+    }
+    if (count($docs) > 1) {
+        if (isset($_SESSION['addon_documentation']['doclang'])) {
+            $lang = $_SESSION['addon_documentation']['doclang'];
+        }
+        if ($doclang) {
+            $lang = $doclang;
+        }
+        $sel_lang = new rex_select();
+        $sel_lang->setStyle('class="form-control"');
+        $sel_lang->setName('doclang');
+        $sel_lang->setId('doclang');
+        $sel_lang->setSize(1);
+        $sel_lang->setSelected($lang);
+        foreach ($docs as $l) {
+            $sel_lang->addOption($l, $l);
+        }
+        //$langselect = $sel_lang->get();
+        $langselect = '
+        <form action="' . rex_url::currentBackendPage() . '" method="post">
+        <input type="hidden" name="formsubmit" value="1" />
+            ' . $sel_lang->get() . '
+        </form>
+        ';
+        if ($formsubmit) {
+            $_SESSION['addon_documentation']['doclang'] = $lang;
+        }
+    }
+}
+
+// Pfad zusammenbauen aus Addon + Plugin + Sprache
+$path = rex_path::plugin($addon, $docplugin , 'docs/' . $lang . '/');
 
 // vorhandene Dateien ermitteln
 $files = [];
@@ -111,7 +155,7 @@ $content = $fragment->parse('core/page/section.php');
 echo '
 <section class="addon_documentation">
     <div class="row">
-        <div class="col-md-4 addon_documentation-navi">' . $navi . '
+        <div class="col-md-4 addon_documentation-navi">' . $navi . $langselect . '
         </div>
         <div class="col-md-8 addon_documentation-content">' . $content . '
         </div>

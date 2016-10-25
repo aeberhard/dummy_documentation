@@ -8,4 +8,9 @@ $(document).on('rex:ready', function (event, container) {
         }
     });
 
+    // Language select
+    $('#doclang').change(function() {
+        this.form.submit();
+    });
+ 
 }); // end rex:ready
